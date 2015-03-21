@@ -1,12 +1,17 @@
 #include <pebble.h>
 #include "mainmenu.h"
 #include "about.h"
+#include "showcourse.h"
 
 Window *main_menu_window;
 MenuLayer* main_menu_layer;
 
 Window* about_window;
 TextLayer* about_layer;
+
+Window* show_course_window;
+BitmapLayer* show_course_layer;
+GBitmap* show_course_bitmap;
 
 //Main Menu Callbacks
 
@@ -29,6 +34,13 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
     //int which = cell_index->row;
     switch(cell_index->row){
         case 0:
+            show_course_window = window_create();
+            WindowHandlers show_course_window_handlers = {
+                .load   = show_course_window_load,
+                .unload = show_course_window_unload
+            };
+            window_set_window_handlers(show_course_window,(WindowHandlers)show_course_window_handlers);
+            window_stack_push(show_course_window,true);
             break;
         case 1:
             about_window = window_create();
@@ -42,8 +54,28 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
     }
 }
 
+//Show Course Click Handlers
+
+void show_course_select_click_handler(ClickRecognizerRef recognizer, void* context){
+    
+}
+
+void show_course_config_provider(Window* window){
+    //window_single_click_subscribe
+}
 
 //LOADERS
+
+void show_course_window_load(Window* window){
+    show_course_layer = bitmap_layer_create(GRect(0,0,144,168-MENU_CELL_BASIC_HEADER_HEIGHT));
+    show_course_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_COURSE_ONE);
+    bitmap_layer_set_bitmap(show_course_layer,show_course_bitmap);
+    layer_add_child(window_get_root_layer(show_course_window),bitmap_layer_get_layer(show_course_layer));
+}
+
+void show_course_window_unload(Window* window){
+    bitmap_layer_destroy(show_course_layer);
+}
 
 void about_window_load(Window* window){
     about_layer = text_layer_create(GRect(0,0,144,168-MENU_CELL_BASIC_HEADER_HEIGHT));

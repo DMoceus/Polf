@@ -7,7 +7,13 @@
     "longName": "Polf",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+                "file": "images/course1.png",
+                "name": "IMAGE_COURSE_ONE",
+                "type": "png"
+            }
+        ]
     },
     "sdkVersion": "3",
     "shortName": "Polf",
