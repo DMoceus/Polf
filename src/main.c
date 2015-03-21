@@ -129,11 +129,18 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
 //Show Course Click Handlers
 
 void show_course_select_click_handler(ClickRecognizerRef recognizer, void* context){
-    
+    pick_club_window = window_create();
+    WindowHandlers pc_handlers = {
+        .load   = pick_club_window_load,
+        .unload = pick_club_window_unload
+    };
+    window_set_window_handlers(pick_club_window,(WindowHandlers)pc_handlers);
+    window_stack_push(pick_club_window,true);
     //static const uint32_t const segments[] = {200,100,400};
 }
 
 void show_course_config_provider(Window* window){
+    window_single_click_subscribe(BUTTON_ID_SELECT, show_course_select_click_handler);
     //window_single_click_subscribe
 }
 
@@ -141,11 +148,14 @@ void show_course_config_provider(Window* window){
 
 void pick_club_window_load(Window* window){
     pick_club_layer = menu_layer_create(GRect(0,0,144,168-MENU_CELL_BASIC_HEADER_HEIGHT));
+    menu_layer_set_click_config_onto_window(pick_club_layer,pick_club_window);
     MenuLayerCallbacks callbacks = {
         .draw_row     = (MenuLayerDrawRowCallback)pc_draw_row_callback,
         .get_num_rows = (MenuLayerGetNumberOfRowsInSectionsCallback)pc_num_rows_callback,
         .select_click = (MenuLayerSelectCallback)pc_select_click_callback
     };
+    menu_layer_set_callbacks(pick_club_layer,NULL,callbacks);
+    layer_add_child(window_get_root_layer(pick_club_window),menu_layer_get_layer(pick_club_layer));
 }
 
 void pick_club_window_unload(Window* window){
@@ -156,6 +166,7 @@ void show_course_window_load(Window* window){
     show_course_layer = layer_create(GRect(0,0,144,168-MENU_CELL_BASIC_HEADER_HEIGHT));
     layer_set_update_proc(show_course_layer,show_course_layer_update_callback);
     layer_add_child(window_get_root_layer(show_course_window),show_course_layer);
+    window_set_click_config_provider(show_course_window, (ClickConfigProvider)show_course_config_provider);
 }
 
 void show_course_window_unload(Window* window){
@@ -192,7 +203,7 @@ void mm_window_unload(Window* window){
 void init(void) {
     main_menu_window = window_create();
     WindowHandlers mm_handlers = {
-        .load = mm_window_load,
+        .load   = mm_window_load,
         .unload = mm_window_unload
     };
     window_set_window_handlers(main_menu_window,(WindowHandlers)mm_handlers);
