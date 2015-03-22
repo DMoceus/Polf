@@ -243,6 +243,7 @@ void swing_animation_layer_update_callback(Layer* layer, GContext* ctx){
     gpath_draw_filled(ctx, sand3_path);
     graphics_context_set_fill_color(ctx, GColorDarkGray);
     gpath_draw_filled(ctx, teebox_path);
+    
 }
 
 void swing_animation_animator(){
@@ -414,7 +415,7 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
             window_set_window_handlers(show_course_window, (WindowHandlers){
                 .load   = show_course_window_load,
                 .unload = show_course_window_unload,
-                .appear = show_course_window_appear
+                //.appear = show_course_window_appear
             });
             window_stack_push(show_course_window,true);
             break;
@@ -605,7 +606,16 @@ void swing_animation_window_load(Window* window){
         //GOTO SHOW_COURSE
         currX = nextX;
         currY = nextY;
-        show_course_window = window_create();
+        
+            /*hole_one = gpath_create(&HOLE_ONE_FAIRWAY);
+            green_path = gpath_create(&GREEN);
+            hole_path = gpath_create(&HOLE);
+            sand1_path = gpath_create(&SAND1);
+            sand2_path = gpath_create(&SAND2);
+            sand3_path = gpath_create(&SAND3);
+            teebox_path = gpath_create(&TEEBOX);*/
+            window_stack_remove(show_course_window,false);
+            show_course_window = window_create();
             hole_one = gpath_create(&HOLE_ONE_FAIRWAY);
             green_path = gpath_create(&GREEN);
             hole_path = gpath_create(&HOLE);
@@ -617,7 +627,7 @@ void swing_animation_window_load(Window* window){
             window_set_window_handlers(show_course_window, (WindowHandlers){
                 .load   = show_course_window_load,
                 .unload = show_course_window_unload,
-                .appear = show_course_window_appear
+                //.appear = show_course_window_appear
             });
             window_stack_push(show_course_window,true);
         /*window_stack_remove(pick_club_window,false);
