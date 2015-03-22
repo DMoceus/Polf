@@ -8,6 +8,15 @@
 #include "shakewatch.h"
 #include "swinganimation.h"
 
+static Window *s_victory_window;
+static TextLayer *s_text_victory;
+static TextLayer *s_text_score;
+static TextLayer *s_text_par;
+static Layer *s_canvas_layer;
+static InverterLayer *s_inverted_layer;
+static char buffer[15];
+static char buff[15];
+    
 Window* main_menu_window;
 MenuLayer* main_menu_layer;
 
@@ -54,7 +63,7 @@ int holeMaxX = 85;
 int holeMinY = 20;
 int holeMaxY = 23;
 
-int strokes = 0;
+int score = 0;
 
 bool sand = false;
 
@@ -165,6 +174,59 @@ int calcXCoord(int angleIn, int power){
     return ((ratio*power)+500)/1000;
 }
 
+static void canvas_update_proc(Layer *this_layer, GContext *ctx) {
+
+  GPoint p0 = GPoint(0, 97);
+  GPoint p1 = GPoint(144, 97);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p0, p1);
+	
+	GPoint p2 = GPoint(0, 67);
+  GPoint p3 = GPoint(144, 67);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p2, p3);
+	
+	GPoint p4 = GPoint(0, 127);
+  GPoint p5 = GPoint(144, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p4, p5);
+	
+	GPoint p18 = GPoint(0, 67);
+  GPoint p19 = GPoint(0, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p18, p19);
+	
+	GPoint p6 = GPoint(43, 67);
+  GPoint p7 = GPoint(43, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p6, p7);
+
+	GPoint p8 = GPoint(63, 67);
+  GPoint p9 = GPoint(63, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p8, p9);
+	
+	GPoint p10 = GPoint(83, 67);
+  GPoint p11 = GPoint(83, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p10, p11);
+	
+	GPoint p12 = GPoint(103, 67);
+  GPoint p13 = GPoint(103, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p12, p13);
+	
+	GPoint p14 = GPoint(123, 67);
+  GPoint p15 = GPoint(123, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p14, p15);
+	
+	GPoint p16 = GPoint(143, 67);
+  GPoint p17 = GPoint(143, 127);
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_draw_line(ctx, p16, p17);
+}
+
 //Swing Animation Callbacks
 void swing_animation_layer_update_callback(Layer* layer, GContext* ctx){
     graphics_context_set_fill_color(ctx, GColorJaegerGreen);
@@ -208,6 +270,17 @@ void aim_shot_course_layer_update_callback(Layer* layer, GContext* ctx){
     graphics_context_set_fill_color(ctx, GColorDarkGray);
     gpath_draw_filled(ctx, teebox_path);
     graphics_context_set_fill_color(ctx, GColorBlack);
+    if(club_choice == PUTTER){
+      aiming_path = putter_aim;
+    }else if(club_choice == IRON_NINE){
+      aiming_path = iron_nine_aim;
+    }else if(club_choice == IRON_SEVEN){
+      aiming_path = iron_seven_aim;
+    }else if(club_choice == IRON_FIVE){
+      aiming_path = iron_five_aim;
+    }else if(club_choice == IRON_THREE){
+      aiming_path = iron_three_aim;
+    }
     gpath_draw_filled(ctx, aiming_path);
     gpath_rotate_to(aiming_path, TRIG_MAX_ANGLE / 360 * globalAngle);
     //rot_bitmap_set_compositing_mode(aim_shot_overlay_layer, GCompOpSet);
@@ -230,6 +303,8 @@ void show_course_layer_update_callback(Layer* layer, GContext* ctx){
     gpath_draw_filled(ctx,sand3_path);
     graphics_context_set_fill_color(ctx,GColorDarkGray);
     gpath_draw_filled(ctx,teebox_path);
+    //graphics_context_set_fill_color(ctx,GColorWhite);
+    //gpath_draw_filled(ctx,ball_path);
 }
 
 //Pick Club Callbacks
@@ -338,7 +413,8 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
             window_set_background_color(show_course_window, GColorArmyGreen);
             window_set_window_handlers(show_course_window, (WindowHandlers){
                 .load   = show_course_window_load,
-                .unload = show_course_window_unload
+                .unload = show_course_window_unload,
+                .appear = show_course_window_appear
             });
             window_stack_push(show_course_window,true);
             break;
@@ -358,6 +434,7 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
 //Show Course Click Handlers
 
 void show_course_select_click_handler(ClickRecognizerRef recognizer, void* context){
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Select Handler");
     pick_club_window = window_create();
     WindowHandlers pc_handlers = {
         .load   = pick_club_window_load,
@@ -450,23 +527,106 @@ void shake_watch_accel_data_handler(AccelData* data, uint32_t num_samples){
 
 //LOADERS
 
+void victory_window_load(Window* window){
+    	//Create the text layer
+  Layer *window_layer = window_get_root_layer(window);
+  GRect bounds = layer_get_frame(window_layer);
+	
+	//INCREMENT THE SCORE
+
+  s_text_victory = text_layer_create(GRect(0, 20, bounds.size.w, bounds.size.h-25 /* height */));
+  text_layer_set_text(s_text_victory, "Victory!");
+  text_layer_set_font(s_text_victory, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  text_layer_set_text_alignment(s_text_victory, GTextAlignmentCenter);
+  layer_add_child(window_layer, text_layer_get_layer(s_text_victory));
+	
+	char *parText = "Par       ";
+
+	s_text_par = text_layer_create(GRect(5, 70, bounds.size.w, bounds.size.h-70));
+	//text_layer_set_text(s_text_score, "Par: ");
+	text_layer_set_font(s_text_par, fonts_get_system_font(FONT_KEY_GOTHIC_18));
+	text_layer_set_text_alignment(s_text_par, GTextAlignmentLeft);
+	layer_add_child(window_layer, text_layer_get_layer(s_text_par));
+	snprintf(buff, 15, "%s %d", parText, score);
+	text_layer_set_text(s_text_par, buff);	
+
+	 
+	char *scoreText = "Score  ";
+
+	s_text_score = text_layer_create(GRect(5, 100, bounds.size.w, bounds.size.h-100));
+	//text_layer_set_text(s_text_score, "Par: ");
+	text_layer_set_font(s_text_score, fonts_get_system_font(FONT_KEY_GOTHIC_18));
+	text_layer_set_text_alignment(s_text_score, GTextAlignmentLeft);
+	layer_add_child(window_layer, text_layer_get_layer(s_text_score));
+	snprintf(buffer, 15, "%s %d", scoreText, score);
+	text_layer_set_text(s_text_score, buffer);
+	
+  s_canvas_layer = layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
+  layer_add_child(window_layer, s_canvas_layer);
+
+  // Set the update_proc
+  layer_set_update_proc(s_canvas_layer, canvas_update_proc);
+	
+	//Create InverterLayer
+	s_inverted_layer = inverter_layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
+	layer_add_child(window_layer, inverter_layer_get_layer(s_inverted_layer));
+	vibes_double_pulse();
+    
+    window_stack_remove(pick_club_window,false);
+    window_stack_remove(aim_shot_window,false);
+    window_stack_remove(shake_watch_window,false);
+    window_stack_remove(swing_animation_window,false);
+    window_stack_remove(show_course_window,false);
+    
+}
+
+void victory_window_unload(Window* window){
+    text_layer_destroy(s_text_victory);
+    layer_destroy(s_canvas_layer);
+    inverter_layer_destroy(s_inverted_layer);
+}
+//void show_course_config_provider(Window* window)
+
 void swing_animation_window_load(Window* window){
+    score++;
     swing_animation_layer = layer_create(GRect(0,0,144,168-16));
     layer_set_update_proc(swing_animation_layer,swing_animation_layer_update_callback);
     layer_add_child(window_get_root_layer(swing_animation_window),swing_animation_layer);
     if(victoryCondition()){
         //GOTO Victory
+        s_victory_window = window_create();
+        window_set_window_handlers(s_victory_window, (WindowHandlers) {
+        .load = victory_window_load,
+        .unload = victory_window_unload,
+        });
+        window_stack_push(s_victory_window, true);
     }
     else{
         //GOTO SHOW_COURSE
         currX = nextX;
         currY = nextY;
-        window_stack_remove(pick_club_window,false);
+        show_course_window = window_create();
+            hole_one = gpath_create(&HOLE_ONE_FAIRWAY);
+            green_path = gpath_create(&GREEN);
+            hole_path = gpath_create(&HOLE);
+            sand1_path = gpath_create(&SAND1);
+            sand2_path = gpath_create(&SAND2);
+            sand3_path = gpath_create(&SAND3);
+            teebox_path = gpath_create(&TEEBOX);
+            window_set_background_color(show_course_window, GColorArmyGreen);
+            window_set_window_handlers(show_course_window, (WindowHandlers){
+                .load   = show_course_window_load,
+                .unload = show_course_window_unload,
+                .appear = show_course_window_appear
+            });
+            window_stack_push(show_course_window,true);
+        /*window_stack_remove(pick_club_window,false);
         window_stack_remove(aim_shot_window,false);
         window_stack_remove(shake_watch_window,false);
         layer_mark_dirty(show_course_layer);
+        show_course_config_provider(show_course_window);
         window_stack_remove(swing_animation_window,false);
-    }
+    */}
     //swing_animation_animator();
 }
 
@@ -510,6 +670,22 @@ void aim_shot_window_load(Window* window){
     action_bar_layer_set_click_config_provider(turnActionBar,aim_shot_click_config_provider);
     initializeAngle();
     aiming_path = gpath_create(&AIMING_PATH_INFO);
+    putter_aim = gpath_create(&PUTTER_PATH_INFO);
+    iron_three_aim = gpath_create(&THREE_PATH_INFO);
+    iron_five_aim = gpath_create(&FIVE_PATH_INFO);
+    iron_seven_aim = gpath_create(&SEVEN_PATH_INFO);
+    iron_nine_aim = gpath_create(&NINE_PATH_INFO);
+    if(club_choice == PUTTER){
+      aiming_path = putter_aim;
+    }else if(club_choice == IRON_NINE){
+      aiming_path = iron_nine_aim;
+    }else if(club_choice == IRON_SEVEN){
+      aiming_path = iron_seven_aim;
+    }else if(club_choice == IRON_FIVE){
+      aiming_path = iron_five_aim;
+    }else if(club_choice == IRON_THREE){
+      aiming_path = iron_three_aim;
+    }
     gpath_move_to(aiming_path, GPoint(currentX,currentY));
     gpath_rotate_to(aiming_path, TRIG_MAX_ANGLE / 360 * globalAngle);
 }
@@ -550,6 +726,10 @@ void show_course_window_unload(Window* window){
     gpath_destroy(sand3_path);
     gpath_destroy(teebox_path);
     layer_destroy(show_course_layer);
+}
+
+void show_course_window_appear(Window* window){
+    window_set_click_config_provider(show_course_window, (ClickConfigProvider)show_course_config_provider);
 }
 
 void about_window_load(Window* window){

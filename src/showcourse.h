@@ -7,8 +7,20 @@ GPath *sand1_path;
 GPath *sand2_path;
 GPath *sand3_path;
 GPath *teebox_path;
+GPath *ball_path;
 int currX = 80;
 int currY = 23;
+
+static const GPathInfo BALL = {
+    5,
+    (GPoint[]){
+        {0,0},
+        {0,1},
+        {1,1},
+        {1,0},
+        {0,0}
+    }
+};
     
 static const GPathInfo HOLE_ONE_FAIRWAY = {
   22,
@@ -78,8 +90,8 @@ static const GPathInfo SAND1 = {
     
     {83, 10},
       
-    {7, 6},
-    {75, 6},
+    {76, 6},
+    {74, 6},
       
     {67,10}, 
     
@@ -104,12 +116,16 @@ static const GPathInfo SAND2 = {
 };
   
   static const GPathInfo SAND3 = {
-  4,
+  8,
   (GPoint []) {
-    {30,50},
-    {30,80},
-    {40,80},
-    {40,50} 
+    {32,50},
+    {30,52},
+    {30,78},
+    {32,80},
+    {38,80},
+    {40,78},
+    {40,52},
+    {38,50} 
   }
 };
 
@@ -123,6 +139,7 @@ static const GPathInfo TEEBOX = {
   }
 };
 
+void show_course_window_appear(Window* window);
 void show_course_window_load(Window* window);
 void show_course_window_unload(Window* window);
 void show_course_select_click_handler(ClickRecognizerRef recognizer, void* context);
