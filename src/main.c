@@ -572,13 +572,14 @@ void victory_window_load(Window* window){
 	s_inverted_layer = inverter_layer_create(GRect(0, 0, bounds.size.w, bounds.size.h));
 	layer_add_child(window_layer, inverter_layer_get_layer(s_inverted_layer));
 	vibes_double_pulse();
-    
+    /*
     window_stack_remove(pick_club_window,false);
     window_stack_remove(aim_shot_window,false);
     window_stack_remove(shake_watch_window,false);
     window_stack_remove(swing_animation_window,false);
     window_stack_remove(show_course_window,false);
-    
+    */
+    window_stack_pop_all(false);
 }
 
 void victory_window_unload(Window* window){
@@ -606,38 +607,11 @@ void swing_animation_window_load(Window* window){
         //GOTO SHOW_COURSE
         currX = nextX;
         currY = nextY;
-        
-            /*hole_one = gpath_create(&HOLE_ONE_FAIRWAY);
-            green_path = gpath_create(&GREEN);
-            hole_path = gpath_create(&HOLE);
-            sand1_path = gpath_create(&SAND1);
-            sand2_path = gpath_create(&SAND2);
-            sand3_path = gpath_create(&SAND3);
-            teebox_path = gpath_create(&TEEBOX);*/
-            window_stack_remove(show_course_window,false);
-            show_course_window = window_create();
-            hole_one = gpath_create(&HOLE_ONE_FAIRWAY);
-            green_path = gpath_create(&GREEN);
-            hole_path = gpath_create(&HOLE);
-            sand1_path = gpath_create(&SAND1);
-            sand2_path = gpath_create(&SAND2);
-            sand3_path = gpath_create(&SAND3);
-            teebox_path = gpath_create(&TEEBOX);
-            window_set_background_color(show_course_window, GColorArmyGreen);
-            window_set_window_handlers(show_course_window, (WindowHandlers){
-                .load   = show_course_window_load,
-                .unload = show_course_window_unload,
-                //.appear = show_course_window_appear
-            });
-            window_stack_push(show_course_window,true);
-        /*window_stack_remove(pick_club_window,false);
-        window_stack_remove(aim_shot_window,false);
-        window_stack_remove(shake_watch_window,false);
-        layer_mark_dirty(show_course_layer);
-        show_course_config_provider(show_course_window);
-        window_stack_remove(swing_animation_window,false);
-    */}
-    //swing_animation_animator();
+        window_stack_pop(false);
+        window_stack_pop(false);
+        window_stack_pop(false);
+        window_stack_pop(false);
+    }
 }
 
 void swing_animation_window_unload(Window* window){
