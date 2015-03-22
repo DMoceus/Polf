@@ -5,6 +5,8 @@
 #include "pickclub.h"
 #include "calculations.h"
 #include "aimshot.h"
+#include "shakewatch.h"
+#include "swinganimation.h"
 
 Window* main_menu_window;
 MenuLayer* main_menu_layer;
@@ -23,21 +25,74 @@ Layer* aim_shot_course_layer;
 RotBitmapLayer* aim_shot_overlay_layer;
 GBitmap* bitMap;
 
+Window* shake_watch_window;
+TextLayer* shake_watch_layer;
+
+Window* swing_animation_window;
+Layer* swing_animation_layer;
+PropertyAnimation* anime;
+
+bool checkAccel = true;
+
 int club_choice;
 int hit_low_range;
 int hit_high_range;
+int avg_hit;
 int inTheRough;
 
 int globalAngle;
 int quadrant;
 int actualAngle;
 
+int currentX = 65;
+int currentY = 123;
+int nextX;
+int nextY;
+
+int holeMinX = 80;
+int holeMaxX = 85;
+int holeMinY = 20;
+int holeMaxY = 23;
+
+int strokes = 0;
+
+bool sand = false;
+
 
 
 //Calculations
 
+bool victoryCondition(){
+  if(
+    (nextX <= holeMaxX && nextX >= holeMinX) 
+    &&
+    (nextY <= holeMaxY && nextY >= holeMinY)
+  ){
+    return true;
+  }else if(club_choice == PUTTER){
+      if(
+            (
+                (currentX <= holeMinX && nextX >= holeMaxX)
+                ||
+                (currentX >= holeMaxX && nextX <= holeMinX)
+            )&&(
+                (currentY <= holeMinY && nextY >= holeMaxY)
+                ||
+                (currentY >= holeMaxY && nextY <= holeMaxY)
+            )
+          
+      ){
+          return true;
+      }else{
+          return false;
+      }
+  }else{
+    return false;
+  }
+}
+
 void initializeAngle(){
-    globalAngle = 0;
+    globalAngle = 270;
     quadrant = 2;
     actualAngle = 90;
 }
@@ -48,17 +103,17 @@ void rotateRight(){
         globalAngle = globalAngle - 360;
     }
     if(0 <= globalAngle && globalAngle <= 90){
-        quadrant = 2;
-        actualAngle = 90 - globalAngle;
-    } else if(90 < globalAngle && globalAngle <= 180){
         quadrant = 4;
-        actualAngle = globalAngle - 90;
-    } else if(180 < globalAngle && globalAngle <= 270){
+        actualAngle = globalAngle;
+    } else if(90 < globalAngle && globalAngle <= 180){
         quadrant = 3;
-        actualAngle = 270 - globalAngle;
-    } else{
+        actualAngle = 180 - globalAngle;
+    } else if(180 < globalAngle && globalAngle <= 270){
         quadrant = 1;
-        actualAngle = globalAngle - 270;
+        actualAngle = globalAngle - 180;
+    } else{
+        quadrant = 2;
+        actualAngle = 360 - globalAngle;
     }
 }
 void rotateLeft(){
@@ -67,17 +122,17 @@ void rotateLeft(){
     }
     globalAngle = globalAngle - 6;
     if(0 <= globalAngle && globalAngle <= 90){
-        quadrant = 2;
-        actualAngle = 90 - globalAngle;
-    } else if(90 < globalAngle && globalAngle <= 180){
         quadrant = 4;
-        actualAngle = globalAngle - 90;
-    } else if(180 < globalAngle && globalAngle <= 270){
+        actualAngle = globalAngle;
+    } else if(90 < globalAngle && globalAngle <= 180){
         quadrant = 3;
-        actualAngle = 270 - globalAngle;
-    } else{
+        actualAngle = 180 - globalAngle;
+    } else if(180 < globalAngle && globalAngle <= 270){
         quadrant = 1;
-        actualAngle = globalAngle - 270;
+        actualAngle = globalAngle - 180;
+    } else{
+        quadrant = 2;
+        actualAngle = 360 - globalAngle;
     }
 }
 
@@ -86,22 +141,53 @@ int roll_power(){
     int delta = hit_high_range - hit_low_range;
     srand(time(NULL));
     int show_me_7 = (rand() % delta)+hit_low_range;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%d", show_me_7);
+    if(sand){
+        if(show_me_7 >= avg_hit){
+            srand(time(NULL));
+            show_me_7 = (rand() % delta)+hit_low_range;
+        }
+    }
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%d", show_me_7);
     return show_me_7;
 }
 int calcYCoord(int angleIn, int power){
     angleIn = angleIn%360;
     int angle = (angleIn*TRIG_MAX_ANGLE)/360;
     int32_t ratio= ((sin_lookup(angle))*1000)/TRIG_MAX_RATIO;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", ((ratio*power)+500)/1000);
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", ((ratio*power)+500)/1000);
     return ((ratio*5)+500)/1000;
 }
 int calcXCoord(int angleIn, int power){
     angleIn = angleIn%360;
     int angle = (angleIn*TRIG_MAX_ANGLE)/360;
     int32_t ratio= ((cos_lookup(angle))*1000)/TRIG_MAX_RATIO;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", ((ratio*power)+500)/1000);
+    //APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", ((ratio*power)+500)/1000);
     return ((ratio*power)+500)/1000;
+}
+
+//Swing Animation Callbacks
+void swing_animation_layer_update_callback(Layer* layer, GContext* ctx){
+    graphics_context_set_fill_color(ctx, GColorJaegerGreen);
+    gpath_draw_filled(ctx, hole_one);
+    graphics_context_set_fill_color(ctx, GColorDarkGreen);
+    gpath_draw_filled(ctx, green_path);
+    graphics_context_set_fill_color(ctx, GColorWhite);
+    gpath_draw_filled(ctx, hole_path);
+    graphics_context_set_fill_color(ctx, GColorChromeYellow);
+    gpath_draw_filled(ctx, sand1_path);
+    graphics_context_set_fill_color(ctx, GColorChromeYellow);
+    gpath_draw_filled(ctx, sand2_path);
+    graphics_context_set_fill_color(ctx, GColorChromeYellow);
+    gpath_draw_filled(ctx, sand3_path);
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+    gpath_draw_filled(ctx, teebox_path);
+}
+
+void swing_animation_animator(){
+    GRect from_frame = GRect(currX,currY,1,1);
+    GRect to_frame   = GRect(nextX,nextY,1,1);
+    anime = property_animation_create_layer_frame(swing_animation_layer, &from_frame, &to_frame);
+    animation_schedule((Animation*)anime);
 }
 
 //Aim Shot Callbacks
@@ -121,7 +207,10 @@ void aim_shot_course_layer_update_callback(Layer* layer, GContext* ctx){
     gpath_draw_filled(ctx, sand3_path);
     graphics_context_set_fill_color(ctx, GColorDarkGray);
     gpath_draw_filled(ctx, teebox_path);
-    rot_bitmap_set_compositing_mode(aim_shot_overlay_layer, GCompOpSet);
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    gpath_draw_filled(ctx, aiming_path);
+    gpath_rotate_to(aiming_path, TRIG_MAX_ANGLE / 360 * globalAngle);
+    //rot_bitmap_set_compositing_mode(aim_shot_overlay_layer, GCompOpSet);
 }
 
 //Show Course Callbacks
@@ -173,37 +262,42 @@ void pc_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
     switch(cell_index->row){
         case 0:
             club_choice = PUTTER;
+            avg_hit = PUTTER_AVG;
             hit_low_range = PUTTER_LOW;
             hit_high_range = PUTTER_HIGH;
-            bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_PUTTER);
+            //bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_PUTTER);
             break;
         case 1:
             club_choice = IRON_NINE;
+            avg_hit = IRON_NINE_AVG;
             hit_low_range = IRON_NINE_LOW;
             hit_high_range = IRON_NINE_HIGH;
-            bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_NINE);
+            //bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_NINE);
             break;
         case 2:
             club_choice = IRON_SEVEN;
+            avg_hit = IRON_SEVEN_AVG;
             hit_low_range = IRON_SEVEN_LOW;
             hit_high_range = IRON_SEVEN_HIGH;
-            bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_SEVEN);
+            //bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_SEVEN);
             break;
         case 3:
             club_choice = IRON_FIVE;
+            avg_hit = IRON_FIVE_AVG;
             hit_low_range = IRON_FIVE_LOW;
             hit_high_range = IRON_FIVE_HIGH;
-            bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_FIVE);
+            //bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_FIVE);
             break;
         case 4:
             club_choice = IRON_THREE;
+            avg_hit = IRON_THREE_AVG;
             hit_low_range = IRON_THREE_LOW;
             hit_high_range = IRON_THREE_HIGH;
-            bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_THREE);
+            //bitMap = gbitmap_create_with_resource(RESOURCE_ID_OVERLAY_IRON_THREE);
             break;
     }
     aim_shot_window = window_create();
-    aim_shot_overlay_layer = rot_bitmap_layer_create(bitMap);
+    //aim_shot_overlay_layer = rot_bitmap_layer_create(bitMap);
     window_set_background_color(aim_shot_window, GColorArmyGreen);
     window_set_window_handlers(aim_shot_window, (WindowHandlers){
         .load   = aim_shot_window_load,
@@ -241,7 +335,7 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
             sand2_path = gpath_create(&SAND2);
             sand3_path = gpath_create(&SAND3);
             teebox_path = gpath_create(&TEEBOX);
-            window_set_background_color(show_course_window, GColorBlack);
+            window_set_background_color(show_course_window, GColorArmyGreen);
             window_set_window_handlers(show_course_window, (WindowHandlers){
                 .load   = show_course_window_load,
                 .unload = show_course_window_unload
@@ -260,6 +354,7 @@ void mm_select_click_callback(MenuLayer* menu_layer, MenuIndex* cell_index, void
     }
 }
 
+
 //Show Course Click Handlers
 
 void show_course_select_click_handler(ClickRecognizerRef recognizer, void* context){
@@ -276,21 +371,150 @@ void show_course_config_provider(Window* window){
     window_single_click_subscribe(BUTTON_ID_SELECT, show_course_select_click_handler);
 }
 
+//Aim Shot Click Handlers
+void aim_shot_up_click_handler(ClickRecognizerRef recognizer, void* context){
+    rotateLeft();
+    layer_mark_dirty(aim_shot_course_layer);
+}
+
+void aim_shot_down_click_handler(ClickRecognizerRef recognizer, void* context){
+    rotateRight();
+    layer_mark_dirty(aim_shot_course_layer);
+}
+
+void aim_shot_select_click_handler(ClickRecognizerRef recognizer, void* context){
+    shake_watch_window = window_create();
+    WindowHandlers sw_handlers = {
+        .load   = shake_watch_window_load,
+        .unload = shake_watch_window_unload
+    };
+    window_set_window_handlers(shake_watch_window,(WindowHandlers)sw_handlers);
+    window_stack_push(shake_watch_window,true);
+}
+
+void aim_shot_click_config_provider(void* context){
+    window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler)aim_shot_up_click_handler);
+    window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler)aim_shot_down_click_handler);
+    window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler)aim_shot_select_click_handler);
+}
+
+//Shake Watch Click Handlers
+
+void shake_watch_accel_data_handler(AccelData* data, uint32_t num_samples){
+    uint32_t i;
+    if(checkAccel == true){
+        for(i=0;i<num_samples;i++){
+            if(data[i].x <  -800 ||
+                data[i].x >  800 ||
+                data[i].y < -800 ||
+                data[i].y >  800 ||
+                data[i].z < -1800 ||
+                data[i].z >  -200){
+                //APP_LOG(APP_LOG_LEVEL_DEBUG, "Accelerometer Found!");
+                //APP_LOG(APP_LOG_LEVEL_DEBUG, "%d", data[i].x);
+                //APP_LOG(APP_LOG_LEVEL_DEBUG, "%d", data[i].y);
+                //APP_LOG(APP_LOG_LEVEL_DEBUG, "%d", data[i].z);
+                checkAccel = false;
+                switch(quadrant){
+                    case 1:
+                        nextX = currX - calcXCoord(actualAngle,roll_power());
+                        nextY = currY + calcYCoord(actualAngle,roll_power());
+                        break;
+                    case 2:
+                        nextX = currX + calcXCoord(actualAngle,roll_power());
+                        nextY = currY + calcYCoord(actualAngle,roll_power());
+                        break;
+                    case 3:
+                        nextX = currX - calcXCoord(actualAngle,roll_power());
+                        nextY = currY - calcYCoord(actualAngle,roll_power());
+                        break;
+                    case 4:
+                        nextX = currX + calcXCoord(actualAngle,roll_power());
+                        nextY = currY - calcYCoord(actualAngle,roll_power());
+                        break;
+                }
+                //Call Next Class
+                swing_animation_window = window_create();
+                WindowHandlers sa_handlers = {
+                    .load   = swing_animation_window_load,
+                    .unload = swing_animation_window_unload
+                };
+                window_set_window_handlers(swing_animation_window,(WindowHandlers)sa_handlers);
+                window_stack_push(swing_animation_window,true);
+                
+                break;
+            }
+        }
+    }
+}
+
 //LOADERS
+
+void swing_animation_window_load(Window* window){
+    swing_animation_layer = layer_create(GRect(0,0,144,168-16));
+    layer_set_update_proc(swing_animation_layer,swing_animation_layer_update_callback);
+    layer_add_child(window_get_root_layer(swing_animation_window),swing_animation_layer);
+    if(victoryCondition()){
+        //GOTO Victory
+    }
+    else{
+        //GOTO SHOW_COURSE
+        currX = nextX;
+        currY = nextY;
+        window_stack_remove(pick_club_window,false);
+        window_stack_remove(aim_shot_window,false);
+        window_stack_remove(shake_watch_window,false);
+        layer_mark_dirty(show_course_layer);
+        window_stack_remove(swing_animation_window,false);
+    }
+    //swing_animation_animator();
+}
+
+void swing_animation_window_unload(Window* window){
+    layer_destroy(swing_animation_layer);
+    
+    checkAccel = true;
+}
+
+void shake_watch_window_load(Window* window){
+    shake_watch_layer = text_layer_create(GRect(0,45,144,168-16));
+    text_layer_set_background_color(shake_watch_layer,GColorClear);
+    text_layer_set_text_color(shake_watch_layer, GColorBlack);
+    text_layer_set_text(shake_watch_layer, "Shake\nMe!");
+    text_layer_set_font(shake_watch_layer,fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+    text_layer_set_text_alignment(shake_watch_layer, GTextAlignmentCenter);
+    layer_add_child(window_get_root_layer(window),text_layer_get_layer(shake_watch_layer));
+    uint32_t num_samples = 2;
+    accel_data_service_subscribe(num_samples,(AccelDataHandler)shake_watch_accel_data_handler);
+    accel_service_set_sampling_rate(ACCEL_SAMPLING_10HZ);
+}
+
+void shake_watch_window_unload(Window* window){
+    text_layer_destroy(shake_watch_layer);
+}
 
 void aim_shot_window_load(Window* window){
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Aim Shot Window Loading");
     aim_shot_course_layer = layer_create(GRect(0,0,144,168-MENU_CELL_BASIC_HEADER_HEIGHT));
     layer_set_update_proc(aim_shot_course_layer,aim_shot_course_layer_update_callback);
     layer_add_child(window_get_root_layer(aim_shot_window), aim_shot_course_layer);
-    //TODO ATTACH BITMAP LAYER
-    layer_add_child(window_get_root_layer(aim_shot_window),bitmap_layer_get_layer((BitmapLayer*)aim_shot_overlay_layer));
+    turnActionBar = action_bar_layer_create();
+    action_bar_layer_set_background_color(turnActionBar, GColorWhite);
+    counterClockwiseBitmap = gbitmap_create_with_resource(RESOURCE_ID_COUNTER_CLOCKWISE);
+    clockwiseBitmap = gbitmap_create_with_resource(RESOURCE_ID_CLOCKWISE);
+    checkMarkBitmap = gbitmap_create_with_resource(RESOURCE_ID_CHECK_MARK);
+    action_bar_layer_set_icon(turnActionBar, BUTTON_ID_UP, counterClockwiseBitmap);
+    action_bar_layer_set_icon(turnActionBar, BUTTON_ID_SELECT , checkMarkBitmap);
+    action_bar_layer_set_icon(turnActionBar, BUTTON_ID_DOWN, clockwiseBitmap);
+    action_bar_layer_add_to_window(turnActionBar, window);
+    action_bar_layer_set_click_config_provider(turnActionBar,aim_shot_click_config_provider);
     initializeAngle();
-    
+    aiming_path = gpath_create(&AIMING_PATH_INFO);
+    gpath_move_to(aiming_path, GPoint(currentX,currentY));
+    gpath_rotate_to(aiming_path, TRIG_MAX_ANGLE / 360 * globalAngle);
 }
 
 void aim_shot_window_unload(Window* window){
-    rot_bitmap_layer_destroy(aim_shot_overlay_layer);
     layer_destroy(aim_shot_course_layer);
 }
 

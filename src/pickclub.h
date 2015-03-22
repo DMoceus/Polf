@@ -1,14 +1,19 @@
 #include <pebble.h>
 
 #define PUTTER_LOW 1
+#define PUTTER_AVG 5
 #define PUTTER_HIGH 10
 #define IRON_NINE_LOW 10
+#define IRON_NINE_AVG 15
 #define IRON_NINE_HIGH 30
 #define IRON_SEVEN_LOW 30
+#define IRON_SEVEN_AVG 40
 #define IRON_SEVEN_HIGH 50
 #define IRON_FIVE_LOW 50
+#define IRON_FIVE_AVG 60
 #define IRON_FIVE_HIGH 70
 #define IRON_THREE_LOW 70
+#define IRON_THREE_AVG 85
 #define IRON_THREE_HIGH 100
     
 const int PUTTER = 0;
