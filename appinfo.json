@@ -9,6 +9,31 @@
     "resources": {
         "media": [
             {
+                "file": "images/putter.png",
+                "name": "OVERLAY_PUTTER",
+                "type": "png"
+            },
+            {
+                "file": "images/9iron.png",
+                "name": "OVERLAY_IRON_NINE",
+                "type": "png"
+            },
+            {
+                "file": "images/7iron.png",
+                "name": "OVERLAY_IRON_SEVEN",
+                "type": "png"
+            },
+            {
+                "file": "images/5iron.png",
+                "name": "OVERLAY_IRON_FIVE",
+                "type": "png"
+            },
+            {
+                "file": "images/3Iron.png",
+                "name": "OVERLAY_IRON_THREE",
+                "type": "png"
+            },
+            {
                 "file": "images/selectIcon.png",
                 "name": "ICON_SELECT",
                 "type": "png"
@@ -21,11 +46,6 @@
             {
                 "file": "images/leftIcon.png",
                 "name": "ICON_LEFT",
-                "type": "png"
-            },
-            {
-                "file": "images/course1.png",
-                "name": "IMAGE_COURSE_ONE",
                 "type": "png"
             }
         ]
